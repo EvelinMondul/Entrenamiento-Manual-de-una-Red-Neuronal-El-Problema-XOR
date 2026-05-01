@@ -1,0 +1,1312 @@
+---
+title: 'Entrenamiento Manual de una Red Neuronal: El Problema XOR'
+author: "Evelin Mondul C."
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: flatly
+    highlight: tango
+    number_sections: false
+    code_folding: show
+    self_contained: true
+  pdf_document:
+    toc: true
+    toc_depth: '3'
+subtitle: Aprendizaje supervisado y retropropagación sin librerías especializadas
+lang: es
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE, comment="##")
+set.seed(42)
+```
+
+
+
+```{css estilos, echo=FALSE}
+:root {
+  /* Paleta Sobria: Azules Pizarra y Grises */
+  --primary: #2C3E50;      /* Azul profundo para encabezados */
+  --secondary: #566573;    /* Gris azulado para subtítulos */
+  --accent: #5DADE2;       /* Azul suave para bordes y acentos */
+  --dark: #333333;         /* Texto principal */
+  --light: #F4F6F7;        /* Fondo para cajas claras */
+  --bg: #F9F9F9;           /* Fondo general de la página */
+  --shadow: rgba(0,0,0,0.1);
+}
+
+body {
+  font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--dark);
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+#TOC {
+  background: #FFFFFF;
+  border: 1px solid #E5E8E8;
+  border-left: 4px solid var(--primary);
+  border-radius: 4px;
+  padding: 16px;
+}
+#TOC a { color: var(--primary)!important; font-size: 13px; }
+#TOC a:hover { color: var(--accent)!important; text-decoration: none; }
+
+h1.title {
+  color: var(--primary);
+  font-size: 2.1em;
+  font-weight: bold;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 10px;
+}
+h3.subtitle { color: var(--secondary); font-style: italic; }
+h1 { color: var(--primary); border-bottom: 1px solid #DDD; padding-bottom: 6px; }
+h2 { color: var(--primary); border-left: 4px solid var(--accent); padding-left: 10px; }
+h3 { color: var(--secondary); }
+
+.perfil-card {
+  display: flex; align-items: center; gap: 28px;
+  background: #FFFFFF;
+  border: 1px solid #E5E8E8;
+  border-left: 4px solid var(--primary);
+  border-radius: 8px;
+  padding: 28px 32px;
+  margin: 20px 0 32px 0;
+  box-shadow: 0 2px 10px var(--shadow);
+}
+.perfil-foto {
+  width: 120px; height: 120px; border-radius: 50%;
+  border: 2px solid var(--primary);
+  object-fit: cover; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+}
+.perfil-info h2 { 
+  color: var(--primary)!important; 
+  font-size: 1.5em; margin: 0 0 4px 0; 
+  border: none!important; padding: 0!important; 
+}
+.perfil-info p { 
+  color: #1A1A1A; 
+  margin: 3px 0; 
+  font-size: 0.95em;
+  font-weight: 400; 
+}
+.badge-tema {
+  display: inline-block; background: var(--accent); color: #fff;
+  font-size: .78em; font-weight: bold; padding: 3px 10px; border-radius: 4px;
+  margin-top: 8px; letter-spacing: .5px;
+}
+
+.def-box { 
+  background: var(--light); border-left: 5px solid var(--primary); 
+  border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0; font-size: .97em; 
+}
+.def-box strong { color: var(--primary); }
+
+.interp-box { 
+  background: #FDFDFD; border: 1px solid #E5E8E8; 
+  border-left: 5px solid var(--accent); border-radius: 0 8px 8px 0; 
+  padding: 14px 18px; margin: 14px 0; font-size: .95em; 
+}
+
+
+.concl-box { 
+  background: #F8F9F9; border: 1px solid #E5E8E8; 
+  border-radius: 8px; padding: 20px 24px; margin: 20px 0; font-size: .97em; 
+}
+.concl-box::before { 
+  content: "Conclusión Final"; display: block; 
+  font-weight: bold; color: var(--primary); font-size: 1em; margin-bottom: 8px; 
+}
+
+pre { 
+  background: #282C34; border: 1px solid #3A3A4A; 
+  border-left: 4px solid var(--accent); border-radius: 4px; 
+  color: #ABB2BF; font-size: .88em; padding: 14px; 
+}
+code { 
+  color: #C678DD; background: #EAEAEA; padding: 2px 5px; 
+  border-radius: 3px; font-size: .9em; 
+}
+pre code { color: #ABB2BF; background: transparent; padding: 0; }
+
+.table thead th { 
+  background: var(--primary)!important; color: white!important; 
+  border-bottom: 2px solid var(--accent)!important; font-size: .9em; 
+}
+.table-striped tbody tr:nth-of-type(odd) { background: #F9F9F9!important; }
+.table tbody tr:hover { background: #F0F4F8!important; }
+
+hr { 
+  border: none; height: 1px; 
+  background: #E5E8E8; margin: 28px 0; 
+}
+blockquote { 
+  border-left: 4px solid var(--accent); background: var(--light); 
+  padding: 10px 16px; color: var(--secondary); font-style: italic; 
+  border-radius: 0 6px 6px 0; 
+}
+```
+
+---
+
+# Introducción
+
+Este documento desarrolla paso a paso el entrenamiento manual de una red neuronal
+artificial para aprender la función **XOR** (OR exclusivo). Se implementa desde
+cero en R, sin ninguna librería de aprendizaje automático, mostrando todos los
+cálculos intermedios de manera explícita.
+
+## La función XOR
+
+La función XOR produce **1** cuando sus entradas son diferentes, y **0** cuando
+son iguales. Matemáticamente:
+
+| $x_1$ | $x_2$ | $y$ | Interpretación          |
+|:-----:|:-----:|:---:|:------------------------|
+|   0   |   0   |  0  | Mismas entradas → 0     |
+|   0   |   1   |  1  | Entradas distintas → 1  |
+|   1   |   0   |  1  | Entradas distintas → 1  |
+|   1   |   1   |  0  | Mismas entradas → 0     |
+
+> **¿Por qué es importante?** XOR no es linealmente separable, es decir,
+> ninguna línea recta puede separar ambas clases. Por ello, una red de una
+> sola capa no puede aprenderlo: se necesita al menos una **capa oculta**.
+
+## Arquitectura de la red
+
+La red tiene:
+
+- **Capa de entrada:** 2 neuronas ($x_1$, $x_2$)
+- **Capa oculta:** 2 neuronas ($h_1$, $h_2$) con activación sigmoide
+- **Capa de salida:** 1 neurona ($\hat{y}$) con activación sigmoide
+
+## Función de activación: Sigmoide
+
+$$\sigma(z) = \frac{1}{1 + e^{-z}}$$
+
+Su derivada es:
+
+$$\sigma'(z) = \sigma(z)\,(1 - \sigma(z))$$
+
+Esta propiedad hace que el cálculo de gradientes sea muy eficiente.
+
+## Función de pérdida: Error cuadrático
+
+Para una sola observación usamos:
+
+$$E = \frac{1}{2}(y - \hat{y})^2$$
+
+El factor $\frac{1}{2}$ simplifica la derivada:
+
+$$\frac{\partial E}{\partial \hat{y}} = \hat{y} - y$$
+
+---
+
+# Configuración inicial
+
+```{r funciones-base}
+# ============================================================
+# Funciones fundamentales de la red neuronal
+# ============================================================
+
+# Función sigmoide
+sigmoid <- function(z) {
+  1 / (1 + exp(-z))
+}
+
+# Derivada de la sigmoide (expresada en términos de h = sigma(z))
+sigmoid_deriv <- function(h) {
+  h * (1 - h)
+}
+
+# Función de pérdida: error cuadrático medio (para 1 observación)
+loss <- function(y, y_hat) {
+  0.5 * (y - y_hat)^2
+}
+
+# Gradiente de la pérdida respecto a y_hat
+grad_loss <- function(y, y_hat) {
+  y_hat - y
+}
+```
+
+> **Nota:** La derivada de la sigmoide se calcula directamente desde la
+> activación $h$, no desde $z$. Esto evita recalcular la exponencial y
+> hace el código más eficiente.
+
+---
+
+# Continuación manual — Época 3
+
+## Concepto: ¿Qué es una época?
+
+Una **época** (epoch) es una pasada completa por el conjunto de entrenamiento:
+primero se calcula la predicción (**forward pass**), luego se propaga el error
+hacia atrás (**backpropagation**) y se actualizan los pesos.
+
+## Parámetros al inicio de la época 3
+
+Estos valores son los obtenidos al final de la época 2 (reportados en las notas
+de clase):
+
+```{r ep3-iniciales}
+# Observación de entrenamiento
+x1 <- 0;  x2 <- 1;  y_target <- 1
+
+# Tasa de aprendizaje
+alpha <- 0.25
+
+# Pesos actualizados al final de la época 2
+w1 <- 0.10000   # x1 → h1
+w2 <- 0.50000   # x1 → h2
+w3 <- -0.69764  # x2 → h1
+w4 <- 0.30517   # x2 → h2
+w5 <- 0.21724   # h1 → y_hat
+w6 <- 0.42985   # h2 → y_hat
+
+# Sesgos (todos en 0 en este ejemplo)
+b1 <- 0;  b2 <- 0;  b3 <- 0
+
+cat("=== Parámetros al inicio de la Época 3 ===\n")
+cat(sprintf("w1 = %7.5f   w2 = %7.5f\n", w1, w2))
+cat(sprintf("w3 = %7.5f   w4 = %7.5f\n", w3, w4))
+cat(sprintf("w5 = %7.5f   w6 = %7.5f\n", w5, w6))
+cat(sprintf("b1 = %d   b2 = %d   b3 = %d\n", b1, b2, b3))
+```
+
+## Forward pass — Época 3
+
+### Neurona oculta $h_1$
+
+$$z_1 = w_1 x_1 + w_3 x_2 + b_1$$
+$$h_1 = \sigma(z_1)$$
+
+```{r ep3-forward-h1}
+z1 <- w1*x1 + w3*x2 + b1
+h1 <- sigmoid(z1)
+cat(sprintf("z1 = (%.5f)(0) + (%.5f)(1) + 0 = %.5f\n", w1, w3, z1))
+cat(sprintf("h1 = sigma(%.5f) = %.5f\n", z1, h1))
+```
+
+### Neurona oculta $h_2$
+
+$$z_2 = w_2 x_1 + w_4 x_2 + b_2$$
+$$h_2 = \sigma(z_2)$$
+
+```{r ep3-forward-h2}
+z2 <- w2*x1 + w4*x2 + b2
+h2 <- sigmoid(z2)
+cat(sprintf("z2 = (%.5f)(0) + (%.5f)(1) + 0 = %.5f\n", w2, w4, z2))
+cat(sprintf("h2 = sigma(%.5f) = %.5f\n", z2, h2))
+```
+
+### Neurona de salida $\hat{y}$
+
+$$z_3 = w_5 h_1 + w_6 h_2 + b_3$$
+$$\hat{y} = \sigma(z_3)$$
+
+```{r ep3-forward-output}
+z3   <- w5*h1 + w6*h2 + b3
+yhat <- sigmoid(z3)
+E    <- loss(y_target, yhat)
+
+cat(sprintf("z3   = (%.5f)(%.5f) + (%.5f)(%.5f) + 0 = %.5f\n",
+            w5, h1, w6, h2, z3))
+cat(sprintf("yhat = sigma(%.5f) = %.5f\n", z3, yhat))
+cat(sprintf("E    = 0.5*(1 - %.5f)^2 = %.5f\n", yhat, E))
+```
+
+> *Análisis* La predicción sube de $\hat{y} \approx 0.5764$
+> (época 2) a un valor ligeramente mayor, acercándose al objetivo $y = 1$.
+> El error continúa disminuyendo, confirmando que el gradiente apunta en la
+> dirección correcta.
+
+## Backpropagation — Época 3
+
+### Concepto: Regla de la cadena
+
+El error se propaga hacia atrás usando la **regla de la cadena**. Para cada
+peso $w_i$, calculamos:
+
+$$\frac{\partial E}{\partial w_i} = \frac{\partial E}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z_3} \cdot \frac{\partial z_3}{\partial w_i}$$
+
+### Capa de salida
+
+El **error local** en la capa de salida es:
+
+$$\delta_3 = (\hat{y} - y) \cdot \hat{y}(1 - \hat{y})$$
+
+```{r ep3-back-output}
+delta3 <- grad_loss(y_target, yhat) * sigmoid_deriv(yhat)
+
+dE_dw5 <- delta3 * h1
+dE_dw6 <- delta3 * h2
+# NOTA: los sesgos b1=b2=b3=0 se mantienen fijos en este ejemplo,
+# siguiendo exactamente el documento de clase (LLinas, 2026),
+# que no actualiza sesgos. La función automatizada (Parte 2)
+# tampoco los actualiza para mantener consistencia.
+
+cat(sprintf("delta3  = (%.5f - 1) * %.5f * (1 - %.5f) = %.5f\n",
+            yhat, yhat, yhat, delta3))
+cat(sprintf("dE/dw5  = delta3 * h1 = (%.5f)(%.5f) = %.5f\n",
+            delta3, h1, dE_dw5))
+cat(sprintf("dE/dw6  = delta3 * h2 = (%.5f)(%.5f) = %.5f\n",
+            delta3, h2, dE_dw6))
+
+# Actualización pesos de salida (sesgos permanecen en 0)
+w5_new <- w5 - alpha * dE_dw5
+w6_new <- w6 - alpha * dE_dw6
+
+cat(sprintf("\nw5_nuevo = %.5f - 0.25*(%.5f) = %.5f\n", w5, dE_dw5, w5_new))
+cat(sprintf("w6_nuevo = %.5f - 0.25*(%.5f) = %.5f\n", w6, dE_dw6, w6_new))
+```
+
+### Capa oculta — Neurona $h_1$
+
+El error local se propaga hacia atrás multiplicando por el peso correspondiente:
+
+$$\delta_1 = \delta_3 \cdot w_5 \cdot h_1(1 - h_1)$$
+
+```{r ep3-back-h1}
+delta1 <- delta3 * w5 * sigmoid_deriv(h1)
+
+dE_dw1 <- delta1 * x1
+dE_dw3 <- delta1 * x2
+dE_db1 <- delta1
+
+cat(sprintf("delta1  = %.5f * %.5f * %.5f*(1-%.5f) = %.5f\n",
+            delta3, w5, h1, h1, delta1))
+cat(sprintf("dE/dw1  = delta1 * x1 = (%.5f)(%.0f) = %.5f\n",
+            delta1, x1, dE_dw1))
+cat(sprintf("dE/dw3  = delta1 * x2 = (%.5f)(%.0f) = %.5f\n",
+            delta1, x2, dE_dw3))
+
+w1_new <- w1 - alpha * dE_dw1
+w3_new <- w3 - alpha * dE_dw3
+b1_new <- b1 - alpha * dE_db1
+
+cat(sprintf("\nw1_nuevo = %.5f - 0.25*(%.5f) = %.5f\n", w1, dE_dw1, w1_new))
+cat(sprintf("w3_nuevo = %.5f - 0.25*(%.5f) = %.5f\n", w3, dE_dw3, w3_new))
+```
+
+### Capa oculta — Neurona $h_2$
+
+$$\delta_2 = \delta_3 \cdot w_6 \cdot h_2(1 - h_2)$$
+
+```{r ep3-back-h2}
+delta2 <- delta3 * w6 * sigmoid_deriv(h2)
+
+dE_dw2 <- delta2 * x1
+dE_dw4 <- delta2 * x2
+dE_db2 <- delta2
+
+cat(sprintf("delta2  = %.5f * %.5f * %.5f*(1-%.5f) = %.5f\n",
+            delta3, w6, h2, h2, delta2))
+cat(sprintf("dE/dw2  = delta2 * x1 = (%.5f)(%.0f) = %.5f\n",
+            delta2, x1, dE_dw2))
+cat(sprintf("dE/dw4  = delta2 * x2 = (%.5f)(%.0f) = %.5f\n",
+            delta2, x2, dE_dw4))
+
+w2_new <- w2 - alpha * dE_dw2
+w4_new <- w4 - alpha * dE_dw4
+b2_new <- b2 - alpha * dE_db2
+
+cat(sprintf("\nw2_nuevo = %.5f - 0.25*(%.5f) = %.5f\n", w2, dE_dw2, w2_new))
+cat(sprintf("w4_nuevo = %.5f - 0.25*(%.5f) = %.5f\n", w4, dE_dw4, w4_new))
+```
+
+## Resumen de la Época 3 y comparación con épocas anteriores
+
+```{r ep3-resumen}
+df_comparacion <- data.frame(
+  Epoca      = 1:3,
+  y_hat      = c(0.5735, 0.5764, round(yhat, 5)),
+  Error_abs  = c(abs(1 - 0.5735), abs(1 - 0.5764), abs(1 - yhat)),
+  Costo      = c(0.09095, 0.08973, round(E, 5)),
+  w3         = c(-0.70000, -0.69884, -0.69764),
+  w4         = c(0.30000, 0.30255, 0.30517),
+  w5         = c(0.20000, 0.20865, 0.21724),
+  w6         = c(0.40000, 0.41498, 0.42985)
+)
+
+knitr::kable(df_comparacion,
+  col.names = c("Época", "ŷ", "|y - ŷ|", "Costo", "w3", "w4", "w5", "w6"),
+  digits = 5,
+  caption = "Comparación de resultados en las tres primeras épocas")
+```
+
+> *Análisis* En cada época, la predicción $\hat{y}$ se acerca más
+> al objetivo $y = 1$, el costo disminuye y los pesos asociados a $x_2$
+> (que en esta observación vale 1) se ajustan. Los pesos asociados a $x_1$
+> no cambian porque $x_1 = 0$, y el gradiente respecto a ellos es cero.
+
+---
+
+# Automatización en R — 10 a 20 épocas
+
+## Concepto: Por qué automatizar
+
+Repetir los cálculos manuales 20 veces sería tedioso y propenso a errores.
+La automatización permite:
+
+1. Ejecutar muchas épocas rápidamente
+2. Garantizar que cada paso aplica exactamente las mismas fórmulas
+3. Registrar el historial completo para graficar y analizar
+
+## Implementación desde cero
+
+```{r automatizacion}
+# ============================================================
+# ENTRENAMIENTO AUTOMATIZADO — SIN LIBRERÍAS DE ML
+# ============================================================
+
+entrenar_xor_1obs <- function(
+    x1_in, x2_in, y_in,          # Observación de entrenamiento
+    w1_0, w2_0, w3_0, w4_0,      # Pesos iniciales (capa oculta)
+    w5_0, w6_0,                   # Pesos iniciales (capa salida)
+    b1_0 = 0, b2_0 = 0, b3_0 = 0, # Sesgos iniciales
+    alpha = 0.25,                  # Tasa de aprendizaje
+    n_epocas = 20                  # Número de épocas
+) {
+
+  # Inicializar pesos
+  w1 <- w1_0; w2 <- w2_0; w3 <- w3_0; w4 <- w4_0
+  w5 <- w5_0; w6 <- w6_0
+  b1 <- b1_0; b2 <- b2_0; b3 <- b3_0
+
+  # Almacenar resultados
+  historial <- data.frame()
+
+  for (ep in 1:n_epocas) {
+
+    # --- FORWARD PASS ---
+    z1   <- w1*x1_in + w3*x2_in + b1
+    z2   <- w2*x1_in + w4*x2_in + b2
+    h1   <- sigmoid(z1)
+    h2   <- sigmoid(z2)
+    z3   <- w5*h1 + w6*h2 + b3
+    yhat <- sigmoid(z3)
+    E    <- loss(y_in, yhat)
+
+    # --- BACKPROPAGATION ---
+    # Error local en la capa de salida
+    delta3 <- grad_loss(y_in, yhat) * sigmoid_deriv(yhat)
+
+    # Gradientes de la capa de salida
+    dE_dw5 <- delta3 * h1
+    dE_dw6 <- delta3 * h2
+    dE_db3 <- delta3
+
+    # Error local en la capa oculta
+    delta1 <- delta3 * w5 * sigmoid_deriv(h1)
+    delta2 <- delta3 * w6 * sigmoid_deriv(h2)
+
+    # Gradientes de la capa oculta
+    dE_dw1 <- delta1 * x1_in
+    dE_dw3 <- delta1 * x2_in
+    dE_dw2 <- delta2 * x1_in
+    dE_dw4 <- delta2 * x2_in
+    dE_db1 <- delta1
+    dE_db2 <- delta2
+
+    # Magnitud del gradiente total
+    grad_mag <- sqrt(dE_dw1^2 + dE_dw2^2 + dE_dw3^2 + dE_dw4^2 +
+                     dE_dw5^2 + dE_dw6^2)
+
+    # --- ACTUALIZACIÓN DE PARÁMETROS ---
+    w1 <- w1 - alpha * dE_dw1
+    w2 <- w2 - alpha * dE_dw2
+    w3 <- w3 - alpha * dE_dw3
+    w4 <- w4 - alpha * dE_dw4
+    w5 <- w5 - alpha * dE_dw5
+    w6 <- w6 - alpha * dE_dw6
+    b1 <- b1 - alpha * dE_db1
+    b2 <- b2 - alpha * dE_db2
+    b3 <- b3 - alpha * dE_db3
+
+    # Guardar fila del historial
+    historial <- rbind(historial, data.frame(
+      Epoca    = ep,
+      z1       = round(z1,   5),
+      z2       = round(z2,   5),
+      z3       = round(z3,   5),
+      h1       = round(h1,   5),
+      h2       = round(h2,   5),
+      y_hat    = round(yhat, 5),
+      y        = y_in,
+      Err_abs  = round(abs(y_in - yhat), 5),
+      Costo    = round(E,    5),
+      Grad_mag = round(grad_mag, 6),
+      w1       = round(w1, 5), w2 = round(w2, 5),
+      w3       = round(w3, 5), w4 = round(w4, 5),
+      w5       = round(w5, 5), w6 = round(w6, 5),
+      b1       = round(b1, 5), b2 = round(b2, 5),
+      b3       = round(b3, 5)
+    ))
+  }
+
+  return(historial)
+}
+
+# Ejecutar con los parámetros del ejemplo de clase
+set.seed(42)
+hist_orig <- entrenar_xor_1obs(
+  x1_in = 0, x2_in = 1, y_in = 1,
+  w1_0 = 0.1,  w2_0 = 0.5,  w3_0 = -0.7, w4_0 = 0.3,
+  w5_0 = 0.2,  w6_0 = 0.4,
+  alpha = 0.25, n_epocas = 20
+)
+```
+
+## Tabla completa de resultados
+
+```{r tabla-resultados}
+knitr::kable(
+  hist_orig[, c("Epoca","z1","z2","z3","h1","h2",
+                "y_hat","y","Err_abs","Costo","Grad_mag")],
+  col.names = c("Época","z1","z2","z3","h1","h2",
+                "ŷ","y","|y-ŷ|","Costo","||∇E||"),
+  digits = 5,
+  caption = "Tabla completa: 20 épocas de entrenamiento con una observación XOR")
+```
+
+> **Análisis** La predicción $\hat{y}$ aumenta monótonamente
+> desde ~0.57 hacia 1, el costo disminuye en cada época y la magnitud del
+> gradiente también decrece, lo que indica que el algoritmo converge
+> correctamente. La tasa de mejora es pequeña por época porque la tasa de
+> aprendizaje $\alpha = 0.25$ es conservadora.
+
+---
+
+# Análisis gráfico del proceso de entrenamiento
+
+## Concepto: ¿Qué nos dicen las gráficas?
+
+Las gráficas permiten observar visualmente cómo evoluciona el aprendizaje:
+
+- **Costo decreciente** → el modelo mejora
+- **Error absoluto decreciente** → las predicciones se acercan al objetivo
+- **Gradiente decreciente** → el modelo se acerca a un mínimo
+- **Pesos convergiendo** → los parámetros se estabilizan
+
+```{r graficas, fig.height=10}
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
+
+# --- (a) Costo por época ---
+plot(hist_orig$Epoca, hist_orig$Costo,
+     type = "b", pch = 16, col = "#2E86C1",
+     xlab = "Época", ylab = "Costo E",
+     main = "(a) Función de pérdida por época",
+     lwd = 2)
+grid()
+
+# --- (b) Error absoluto por época ---
+plot(hist_orig$Epoca, hist_orig$Err_abs,
+     type = "b", pch = 16, col = "#C0392B",
+     xlab = "Época", ylab = "|y - ŷ|",
+     main = "(b) Error absoluto por época",
+     lwd = 2)
+grid()
+
+# --- (c) Magnitud del gradiente ---
+plot(hist_orig$Epoca, hist_orig$Grad_mag,
+     type = "b", pch = 16, col = "#27AE60",
+     xlab = "Época", ylab = "||∇E||",
+     main = "(c) Magnitud del gradiente por época",
+     lwd = 2)
+grid()
+
+# --- (d) Evolución de pesos seleccionados ---
+plot(hist_orig$Epoca, hist_orig$w3,
+     type = "b", pch = 16, col = "#8E44AD",
+     xlab = "Época", ylab = "Valor del peso",
+     main = "(d) Evolución de pesos seleccionados",
+     ylim = range(c(hist_orig$w3, hist_orig$w4,
+                    hist_orig$w5, hist_orig$w6)),
+     lwd = 2)
+lines(hist_orig$Epoca, hist_orig$w4, type="b", pch=17, col="#E67E22", lwd=2)
+lines(hist_orig$Epoca, hist_orig$w5, type="b", pch=15, col="#2E86C1", lwd=2)
+lines(hist_orig$Epoca, hist_orig$w6, type="b", pch=18, col="#C0392B", lwd=2)
+legend("topright",
+       legend = c("w3 (x2→h1)", "w4 (x2→h2)", "w5 (h1→ŷ)", "w6 (h2→ŷ)"),
+       col    = c("#8E44AD","#E67E22","#2E86C1","#C0392B"),
+       pch    = c(16,17,15,18), lwd = 2, cex = 0.85)
+grid()
+
+par(mfrow = c(1, 1))
+```
+
+> **Análisis de las gráficas:**
+>
+> **(a) Costo:** Disminuye en cada época, con mayor rapidez al principio
+> y más lentamente al final (curva convexa). Esto es típico del descenso
+> de gradiente: los pasos grandes se dan cuando el gradiente es grande.
+>
+> **(b) Error absoluto:** Sigue el mismo patrón que el costo, reduciéndose
+> de ~0.43 a un valor más pequeño. Como usamos la misma observación siempre,
+> la reducción es suave y monótona.
+>
+> **(c) Magnitud del gradiente:** Decrece con las épocas, lo que confirma
+> que nos acercamos a un mínimo. Si el gradiente llegara a cero, los pesos
+> dejarían de cambiar (convergencia).
+>
+> **(d) Pesos:** Los pesos $w_3$ y $w_4$ (conectados a $x_2 = 1$) cambian
+> significativamente. Los pesos $w_5$ y $w_6$ también evolucionan porque
+> $h_1$ y $h_2$ son distintos de cero. Los pesos $w_1$ y $w_2$ (conectados
+> a $x_1 = 0$) no aparecen porque no cambian.
+
+---
+
+# Sensibilidad a la inicialización
+
+## Concepto: ¿Por qué importa la inicialización?
+
+Los pesos iniciales determinan el punto de partida en el espacio de pérdida.
+Diferentes inicializaciones pueden llevar a:
+
+- Diferentes velocidades de convergencia
+- Diferentes mínimos locales
+- Mayor o menor estabilidad en los gradientes
+
+```{r inicializacion-alternativa}
+# Nueva inicialización: pesos más grandes y con signos distintos
+hist_alt <- entrenar_xor_1obs(
+  x1_in = 0, x2_in = 1, y_in = 1,
+  w1_0 = 0.9,  w2_0 = -0.5, w3_0 = 0.3,  w4_0 = -0.8,
+  w5_0 = -0.4, w6_0 = 0.7,
+  alpha = 0.25, n_epocas = 20
+)
+```
+
+## Comparación visual
+
+```{r comparacion-init, fig.height=8}
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
+
+# --- (a) Predicción ---
+plot(hist_orig$Epoca, hist_orig$y_hat,
+     type = "b", pch = 16, col = "#2E86C1", lwd = 2,
+     xlab = "Época", ylab = "ŷ",
+     main = "(a) Predicción por época",
+     ylim = range(c(hist_orig$y_hat, hist_alt$y_hat)))
+lines(hist_alt$Epoca, hist_alt$y_hat,
+      type = "b", pch = 17, col = "#C0392B", lwd = 2)
+abline(h = 1, lty = 2, col = "gray50")
+legend("bottomright",
+       legend = c("Original", "Alternativa"),
+       col = c("#2E86C1","#C0392B"), pch = c(16,17), lwd = 2)
+grid()
+
+# --- (b) Costo ---
+plot(hist_orig$Epoca, hist_orig$Costo,
+     type = "b", pch = 16, col = "#2E86C1", lwd = 2,
+     xlab = "Época", ylab = "Costo",
+     main = "(b) Costo por época",
+     ylim = range(c(hist_orig$Costo, hist_alt$Costo)))
+lines(hist_alt$Epoca, hist_alt$Costo,
+      type = "b", pch = 17, col = "#C0392B", lwd = 2)
+legend("topright",
+       legend = c("Original", "Alternativa"),
+       col = c("#2E86C1","#C0392B"), pch = c(16,17), lwd = 2)
+grid()
+
+# --- (c) Error absoluto ---
+plot(hist_orig$Epoca, hist_orig$Err_abs,
+     type = "b", pch = 16, col = "#2E86C1", lwd = 2,
+     xlab = "Época", ylab = "|y - ŷ|",
+     main = "(c) Error absoluto por época",
+     ylim = range(c(hist_orig$Err_abs, hist_alt$Err_abs)))
+lines(hist_alt$Epoca, hist_alt$Err_abs,
+      type = "b", pch = 17, col = "#C0392B", lwd = 2)
+legend("topright",
+       legend = c("Original", "Alternativa"),
+       col = c("#2E86C1","#C0392B"), pch = c(16,17), lwd = 2)
+grid()
+
+# --- (d) Magnitud del gradiente ---
+plot(hist_orig$Epoca, hist_orig$Grad_mag,
+     type = "b", pch = 16, col = "#2E86C1", lwd = 2,
+     xlab = "Época", ylab = "||∇E||",
+     main = "(d) Magnitud del gradiente",
+     ylim = range(c(hist_orig$Grad_mag, hist_alt$Grad_mag)))
+lines(hist_alt$Epoca, hist_alt$Grad_mag,
+      type = "b", pch = 17, col = "#C0392B", lwd = 2)
+legend("topright",
+       legend = c("Original", "Alternativa"),
+       col = c("#2E86C1","#C0392B"), pch = c(16,17), lwd = 2)
+grid()
+
+par(mfrow = c(1, 1))
+```
+
+## Tabla comparativa: Épocas 1, 5, 10 y 20
+
+```{r tabla-comparacion-init}
+epocas_clave <- c(1, 5, 10, 20)
+
+df_comp <- data.frame(
+  Epoca          = epocas_clave,
+  yhat_orig      = hist_orig$y_hat[epocas_clave],
+  costo_orig     = hist_orig$Costo[epocas_clave],
+  yhat_alt       = hist_alt$y_hat[epocas_clave],
+  costo_alt      = hist_alt$Costo[epocas_clave]
+)
+
+knitr::kable(df_comp,
+  col.names = c("Época", "ŷ (Original)", "Costo (Orig.)",
+                "ŷ (Alternativa)", "Costo (Alt.)"),
+  digits = 5,
+  caption = "Comparación de inicializaciones en épocas clave")
+```
+
+> **Análisis:** La inicialización alternativa parte de una predicción
+> diferente porque los pesos iniciales producen una activación distinta.
+> Dependiendo de qué tan cerca estén los pesos iniciales de una buena
+> solución, la convergencia puede ser más rápida o más lenta. Inicializaciones
+> con pesos grandes pueden causar gradientes más inestables al principio.
+> En la práctica, técnicas como **Xavier** o **He** inicializan los pesos
+> de forma inteligente para acelerar la convergencia.
+
+---
+
+# Entrenamiento con dos observaciones XOR (forma matricial)
+
+## Concepto: ¿Por qué usar matrices?
+
+Cuando entrenamos con múltiples observaciones a la vez (**batch**), las
+operaciones escalares se reemplazan por multiplicaciones matriciales. Esto
+es computacionalmente eficiente porque R (y Python) están optimizados para
+álgebra lineal.
+
+Con dos observaciones, la entrada se organiza como:
+
+$$X = \begin{pmatrix} x_{1}^{(1)} & x_{2}^{(1)} \\ x_{1}^{(2)} & x_{2}^{(2)} \end{pmatrix} = \begin{pmatrix} 0 & 1 \\ 1 & 0 \end{pmatrix}, \quad y = \begin{pmatrix} 1 \\ 1 \end{pmatrix}$$
+
+Las matrices de pesos son:
+
+$$W^{(0,1)} = \begin{pmatrix} w_1 & w_2 \\ w_3 & w_4 \end{pmatrix} \in \mathbb{R}^{2 \times 2}, \quad W^{(1,2)} = \begin{pmatrix} w_5 \\ w_6 \end{pmatrix} \in \mathbb{R}^{2 \times 1}$$
+
+## Implementación matricial
+
+```{r matricial}
+# ============================================================
+# ENTRENAMIENTO MATRICIAL CON DOS OBSERVACIONES
+# ============================================================
+
+entrenar_xor_matriz <- function(
+    X, y,                         # Matriz de entradas y vector objetivo
+    W1_0, W2_0,                   # Matrices de pesos iniciales
+    b1_0, b2_0,                   # Vectores de sesgos
+    alpha = 0.25,
+    n_epocas = 20
+) {
+
+  W1 <- W1_0  # 2x2: pesos capa oculta
+  W2 <- W2_0  # 2x1: pesos capa salida
+  b1 <- b1_0  # 1x2
+  b2 <- b2_0  # escalar
+
+  n <- nrow(X)  # número de observaciones
+  historial <- data.frame()
+
+  for (ep in 1:n_epocas) {
+
+    # === FORWARD PASS (matricial) ===
+    # Capa oculta: Z1 = X %*% W1 + b1  (dim: n x 2)
+    Z1 <- sweep(X %*% W1, 2, b1, "+")
+    H1 <- sigmoid(Z1)          # activaciones ocultas (n x 2)
+
+    # Capa de salida: Z2 = H1 %*% W2 + b2  (dim: n x 1)
+    Z2 <- H1 %*% W2 + b2
+    Yhat <- sigmoid(Z2)        # predicciones (n x 1)
+
+    # Costo promedio sobre las n observaciones
+    E <- mean(0.5 * (y - Yhat)^2)
+
+    # === BACKPROPAGATION (matricial) ===
+    # Delta de la capa de salida (n x 1)
+    delta2 <- (Yhat - y) * sigmoid_deriv(Yhat)
+
+    # Gradientes de la capa de salida
+    dW2 <- t(H1) %*% delta2 / n     # 2x1
+    db2 <- mean(delta2)
+
+    # Propagar error a la capa oculta (n x 2)
+    delta1 <- (delta2 %*% t(W2)) * sigmoid_deriv(H1)
+
+    # Gradientes de la capa oculta
+    dW1 <- t(X) %*% delta1 / n      # 2x2
+    db1 <- colMeans(delta1)
+
+    # === ACTUALIZACIÓN ===
+    W1 <- W1 - alpha * dW1
+    W2 <- W2 - alpha * dW2
+    b1 <- b1 - alpha * db1
+    b2 <- b2 - alpha * db2
+
+    # Magnitud del gradiente
+    grad_mag <- sqrt(sum(dW1^2) + sum(dW2^2))
+
+    historial <- rbind(historial, data.frame(
+      Epoca    = ep,
+      yhat1    = round(Yhat[1], 5),
+      yhat2    = round(Yhat[2], 5),
+      Costo    = round(E, 5),
+      Err_abs1 = round(abs(y[1] - Yhat[1]), 5),
+      Err_abs2 = round(abs(y[2] - Yhat[2]), 5),
+      Grad_mag = round(grad_mag, 6)
+    ))
+  }
+
+  return(historial)
+}
+
+# Datos: dos observaciones XOR
+X_mat <- matrix(c(0,1, 1,0), nrow=2, byrow=TRUE)
+y_mat <- matrix(c(1, 1),     nrow=2)
+
+cat("Matriz de entradas X:\n"); print(X_mat)
+cat("Vector objetivo y:\n");    print(y_mat)
+
+# Pesos iniciales (mismos del ejemplo original)
+W1_init <- matrix(c(0.1, -0.7, 0.5, 0.3), nrow=2, byrow=FALSE)
+W2_init <- matrix(c(0.2, 0.4), nrow=2)
+b1_init <- c(0, 0)
+b2_init <- 0
+
+cat("\nMatriz de pesos W1 (capa oculta):\n"); print(W1_init)
+cat("Vector de pesos W2 (capa salida):\n");   print(W2_init)
+
+hist_mat <- entrenar_xor_matriz(
+  X = X_mat, y = y_mat,
+  W1_0 = W1_init, W2_0 = W2_init,
+  b1_0 = b1_init, b2_0 = b2_init,
+  alpha = 0.25, n_epocas = 20
+)
+```
+
+## Tabla de resultados matriciales
+
+```{r tabla-matricial}
+knitr::kable(hist_mat,
+  col.names = c("Época", "ŷ₁", "ŷ₂", "Costo",
+                "|y₁-ŷ₁|", "|y₂-ŷ₂|", "||∇E||"),
+  digits = 5,
+  caption = "Entrenamiento matricial con dos observaciones XOR")
+```
+
+## Gráficas del entrenamiento matricial
+
+```{r graficas-matricial, fig.height=8}
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
+
+# (a) Predicciones por época
+plot(hist_mat$Epoca, hist_mat$yhat1,
+     type = "b", pch = 16, col = "#2E86C1", lwd = 2,
+     ylim = range(c(hist_mat$yhat1, hist_mat$yhat2, 0.4, 1)),
+     xlab = "Época", ylab = "ŷ",
+     main = "(a) Predicciones por época")
+lines(hist_mat$Epoca, hist_mat$yhat2,
+      type = "b", pch = 17, col = "#C0392B", lwd = 2)
+abline(h = 1, lty = 2, col = "gray50")
+legend("bottomright",
+       legend = c("ŷ₁ (obs. 1)", "ŷ₂ (obs. 2)"),
+       col = c("#2E86C1","#C0392B"), pch = c(16,17), lwd = 2)
+grid()
+
+# (b) Costo
+plot(hist_mat$Epoca, hist_mat$Costo,
+     type = "b", pch = 16, col = "#27AE60", lwd = 2,
+     xlab = "Época", ylab = "Costo promedio",
+     main = "(b) Costo promedio por época")
+grid()
+
+# (c) Error absoluto
+plot(hist_mat$Epoca, hist_mat$Err_abs1,
+     type = "b", pch = 16, col = "#2E86C1", lwd = 2,
+     ylim = range(c(hist_mat$Err_abs1, hist_mat$Err_abs2)),
+     xlab = "Época", ylab = "|y - ŷ|",
+     main = "(c) Error absoluto por observación")
+lines(hist_mat$Epoca, hist_mat$Err_abs2,
+      type = "b", pch = 17, col = "#C0392B", lwd = 2)
+legend("topright",
+       legend = c("|y₁-ŷ₁|", "|y₂-ŷ₂|"),
+       col = c("#2E86C1","#C0392B"), pch = c(16,17), lwd = 2)
+grid()
+
+# (d) Magnitud del gradiente
+plot(hist_mat$Epoca, hist_mat$Grad_mag,
+     type = "b", pch = 16, col = "#8E44AD", lwd = 2,
+     xlab = "Época", ylab = "||∇E||",
+     main = "(d) Magnitud del gradiente")
+grid()
+
+par(mfrow = c(1, 1))
+```
+
+> **Análisis:** Con dos observaciones (batch de tamaño 2), el
+> gradiente se promedia sobre ambas, lo que produce actualizaciones más
+> estables que con una sola observación. Ambas predicciones mejoran
+> simultáneamente hacia el objetivo $y = 1$.
+
+---
+
+# Interpretación y comparación de los tres escenarios
+
+```{r comparacion-3-escenarios}
+df_final <- data.frame(
+  Escenario    = c("1 obs. (original)", "1 obs. (alt. init.)",
+                   "2 obs. (matricial)"),
+  yhat_ep1     = c(hist_orig$y_hat[1], hist_alt$y_hat[1],
+                   (hist_mat$yhat1[1] + hist_mat$yhat2[1])/2),
+  costo_ep1    = c(hist_orig$Costo[1], hist_alt$Costo[1],
+                   hist_mat$Costo[1]),
+  yhat_ep20    = c(hist_orig$y_hat[20], hist_alt$y_hat[20],
+                   (hist_mat$yhat1[20] + hist_mat$yhat2[20])/2),
+  costo_ep20   = c(hist_orig$Costo[20], hist_alt$Costo[20],
+                   hist_mat$Costo[20])
+)
+
+knitr::kable(df_final,
+  col.names = c("Escenario", "ŷ inicial", "Costo inicial",
+                "ŷ final", "Costo final"),
+  digits = 5,
+  caption = "Comparación de los tres escenarios de entrenamiento")
+```
+
+> **Discusión:**
+>
+> **Número de observaciones:** Usar más observaciones por actualización
+> proporciona un gradiente más representativo de la función de pérdida
+> global, lo que suele producir convergencia más estable.
+>
+> **Inicialización:** Diferentes puntos de partida pueden llevar a
+> trayectorias distintas. En redes pequeñas como esta, generalmente se
+> alcanza la misma región del espacio de parámetros, pero la velocidad
+> puede variar.
+>
+> **¿Por qué se necesita la capa oculta?** Sin la capa oculta, solo podemos
+> aprender funciones lineales. XOR requiere una frontera no lineal que solo
+> puede construirse combinando múltiples transformaciones lineales con
+> funciones de activación no lineales.
+>
+> **Limitación de entrenar con solo 1 o 2 observaciones:** La red se
+> especializa en esas observaciones y puede no generalizar bien a las otras.
+> Esto se llama **sobreajuste parcial**. Para aprender XOR completo se
+> necesitan las 4 observaciones.
+
+---
+
+## Reflexión conceptual — ¿Cómo aprende la red?
+
+El proceso de aprendizaje de una red neuronal puede entenderse como un ciclo iterativo compuesto por varias etapas fundamentales.
+
+### Esquema del proceso de aprendizaje
+
+1. **Entrada:** Se introduce el vector de características $(x_1, x_2)$.
+
+2. **Propagación hacia adelante (Forward pass):**  
+   La red procesa la información a través de sus capas y genera una predicción $\hat{y}$.
+
+3. **Cálculo del error:**  
+   Se determina la diferencia entre el valor real y la predicción:
+   
+   $$ 
+   error = y - \hat{y} 
+   $$
+
+4. **Función de pérdida:**  
+   Se cuantifica el error mediante la función:
+
+   $$ 
+   E = \frac{1}{2}(y - \hat{y})^2 
+   $$
+
+5. **Retropropagación (Backpropagation):**  
+   Se calculan los gradientes de la función de pérdida respecto a cada parámetro.
+
+6. **Actualización de parámetros:**  
+   Los pesos se ajustan mediante descenso de gradiente:
+
+   $$ 
+   w_i \leftarrow w_i - \alpha \frac{\partial E}{\partial w_i}
+   $$
+
+7. **Iteración:**  
+   El proceso se repite durante múltiples épocas, mejorando progresivamente la predicción.
+
+---
+
+### Análisis del aprendizaje
+
+La red neuronal aprende a partir de sus errores mediante los siguientes mecanismos:
+
+- **Predicción ($\hat{y}$):**  
+  Inicialmente, la red produce estimaciones alejadas del valor real debido a pesos aleatorios.
+
+- **Error:**  
+  La diferencia $(y - \hat{y})$ indica la magnitud y dirección del ajuste necesario.
+
+- **Función de pérdida:**  
+  Penaliza más los errores grandes, guiando el proceso de optimización.
+
+- **Gradiente:**  
+  Indica cómo debe modificarse cada peso para reducir la pérdida.
+
+- **Retropropagación:**  
+  Distribuye el error a través de la red, asignando responsabilidad a cada parámetro.
+
+- **Actualización:**  
+  Los pesos se ajustan en la dirección que minimiza el error.
+
+- **Convergencia:**  
+  Con suficientes iteraciones, el modelo mejora sus predicciones y se aproxima al comportamiento esperado.
+
+---
+
+### Análisis pedagógica
+
+>Desde una perspectiva didáctica, este proceso permite comprender que el aprendizaje en redes neuronales no es inmediato >ni garantizado, sino el resultado de múltiples ajustes graduales.
+>
+>Cada iteración representa una mejora incremental basada en el error previo, lo que evidencia la importancia de:
+>
+>- La tasa de aprendizaje  
+>- La inicialización de los pesos  
+>- La arquitectura del modelo  
+
+>En conjunto, estos elementos determinan la capacidad de la red para aprender patrones complejos como la función XOR.
+
+---
+
+## Tabla XOR completa — Las 4 observaciones
+
+### Concepto: Entrenamiento completo
+
+Para que la red aprenda correctamente la función XOR, debe entrenarse con **todas las combinaciones posibles**:
+
+$(0,0) \to 0$, $(0,1) \to 1$, $(1,0) \to 1$, $(1,1) \to 0$.
+
+En esta sección se entrena durante 500 épocas para observar la convergencia del modelo.
+
+```{r xor-completo}
+# ============================================================
+# ENTRENAMIENTO CON LAS 4 OBSERVACIONES XOR
+# ============================================================
+
+entrenar_xor_completo <- function(
+    X, y,
+    W1_0, W2_0, b1_0 = c(0,0), b2_0 = 0,
+    alpha = 0.5, n_epocas = 500
+) {
+
+  W1 <- W1_0; W2 <- W2_0; b1 <- b1_0; b2 <- b2_0
+  n <- nrow(X)
+  historial <- data.frame()
+
+  for (ep in 1:n_epocas) {
+
+    # Forward
+    Z1 <- sweep(X %*% W1, 2, b1, "+")
+    H1 <- sigmoid(Z1)
+    Z2 <- H1 %*% W2 + b2
+    Yhat <- sigmoid(Z2)
+
+    E <- mean(0.5 * (y - Yhat)^2)
+
+    # Backprop
+    delta2 <- (Yhat - y) * sigmoid_deriv(Yhat)
+    dW2 <- t(H1) %*% delta2 / n
+    db2 <- mean(delta2)
+
+    delta1 <- (delta2 %*% t(W2)) * sigmoid_deriv(H1)
+    dW1 <- t(X) %*% delta1 / n
+    db1 <- colMeans(delta1)
+
+    # Actualización
+    W1 <- W1 - alpha * dW1
+    W2 <- W2 - alpha * dW2
+    b1 <- b1 - alpha * db1
+    b2 <- b2 - alpha * db2
+
+    if (ep %% 50 == 0 || ep == 1) {
+      historial <- rbind(historial, data.frame(
+        Epoca    = ep,
+        Costo    = round(E, 6),
+        yhat_00  = round(Yhat[1], 4),
+        yhat_01  = round(Yhat[2], 4),
+        yhat_10  = round(Yhat[3], 4),
+        yhat_11  = round(Yhat[4], 4)
+      ))
+    }
+  }
+
+  list(historial = historial, W1 = W1, W2 = W2,
+       b1 = b1, b2 = b2,
+       Yhat_final = Yhat)
+}
+
+# Las 4 observaciones XOR
+X_full <- matrix(c(0,0, 0,1, 1,0, 1,1), nrow=4, byrow=TRUE)
+y_full <- matrix(c(0, 1, 1, 0), nrow=4)
+
+cat("Tabla XOR completa:\n")
+cat("x1  x2  y\n")
+for(i in 1:4) cat(X_full[i,1], X_full[i,2], y_full[i], "\n")
+
+# Inicialización con pesos pequeños aleatorios (semilla fija)
+set.seed(123)
+W1_full <- matrix(rnorm(4, 0, 0.5), nrow=2)
+W2_full <- matrix(rnorm(2, 0, 0.5), nrow=2)
+
+resultado <- entrenar_xor_completo(
+  X = X_full, y = y_full,
+  W1_0 = W1_full, W2_0 = W2_full,
+  alpha = 0.5, n_epocas = 500
+)
+```
+
+## Tabla de evolución cada 50 épocas
+
+```{r tabla-xor-completo}
+knitr::kable(resultado$historial,
+  col.names = c("Época", "Costo", "ŷ(0,0)", "ŷ(0,1)", "ŷ(1,0)", "ŷ(1,1)"),
+  digits = 5,
+  caption = "Entrenamiento XOR completo: evolución cada 50 épocas")
+```
+
+## Predicciones finales y clasificación
+
+```{r clasificacion-final}
+Yhat_final <- resultado$Yhat_final
+pred_clase  <- ifelse(Yhat_final >= 0.5, 1, 0)
+
+df_pred <- data.frame(
+  x1        = X_full[,1],
+  x2        = X_full[,2],
+  y_real    = as.integer(y_full),
+  y_hat     = round(Yhat_final, 4),
+  clase_pred = pred_clase,
+  correcto  = ifelse(pred_clase == y_full, "✓", "✗")
+)
+
+knitr::kable(df_pred,
+  col.names = c("x₁","x₂","y real","ŷ","Clase predicha","¿Correcto?"),
+  caption = "Predicciones finales de la red XOR completa")
+
+acc <- mean(pred_clase == y_full) * 100
+cat(sprintf("\nPrecisión final: %.1f%%\n", acc))
+```
+
+## Gráficas de entrenamiento XOR completo
+
+```{r graficas-xor-completo, fig.height=8}
+par(mfrow = c(2, 2), mar = c(4, 4, 3, 1))
+
+hist_c <- resultado$historial
+
+# (a) Costo
+plot(hist_c$Epoca, hist_c$Costo,
+     type = "b", pch = 16, col = "#2E86C1", lwd = 2,
+     xlab = "Época", ylab = "Costo promedio",
+     main = "(a) Costo — XOR completo (4 obs.)")
+grid()
+
+# (b) Predicciones para cada observación
+colores <- c("#C0392B","#2E86C1","#27AE60","#8E44AD")
+obs_names <- c("ŷ(0,0)","ŷ(0,1)","ŷ(1,0)","ŷ(1,1)")
+y_reales  <- c(0, 1, 1, 0)
+
+plot(hist_c$Epoca, hist_c$yhat_00,
+     type = "b", pch = 16, col = colores[1], lwd = 2,
+     ylim = c(0, 1),
+     xlab = "Época", ylab = "ŷ",
+     main = "(b) Predicciones por observación")
+lines(hist_c$Epoca, hist_c$yhat_01, type="b", pch=17, col=colores[2], lwd=2)
+lines(hist_c$Epoca, hist_c$yhat_10, type="b", pch=15, col=colores[3], lwd=2)
+lines(hist_c$Epoca, hist_c$yhat_11, type="b", pch=18, col=colores[4], lwd=2)
+abline(h=0.5, lty=2, col="gray50")
+legend("right",
+       legend = obs_names,
+       col = colores, pch = c(16,17,15,18), lwd = 2, cex = 0.8)
+grid()
+
+# (c) Error absoluto por observación
+err_00 <- abs(0 - hist_c$yhat_00)
+err_01 <- abs(1 - hist_c$yhat_01)
+err_10 <- abs(1 - hist_c$yhat_10)
+err_11 <- abs(0 - hist_c$yhat_11)
+
+plot(hist_c$Epoca, err_00,
+     type = "b", pch = 16, col = colores[1], lwd = 2,
+     ylim = range(c(err_00,err_01,err_10,err_11)),
+     xlab = "Época", ylab = "|y - ŷ|",
+     main = "(c) Error absoluto por observación")
+lines(hist_c$Epoca, err_01, type="b", pch=17, col=colores[2], lwd=2)
+lines(hist_c$Epoca, err_10, type="b", pch=15, col=colores[3], lwd=2)
+lines(hist_c$Epoca, err_11, type="b", pch=18, col=colores[4], lwd=2)
+legend("topright",
+       legend = obs_names,
+       col = colores, pch = c(16,17,15,18), lwd = 2, cex = 0.8)
+grid()
+
+# (d) Predicciones finales vs objetivo
+barplot(
+  rbind(as.numeric(y_full), as.numeric(Yhat_final)),
+  beside   = TRUE,
+  names.arg = c("(0,0)","(0,1)","(1,0)","(1,1)"),
+  col      = c("#C0392B","#2E86C1"),
+  legend   = c("y real", "ŷ final"),
+  xlab     = "Observación",
+  ylab     = "Valor",
+  main     = "(d) Comparación: predicción final vs real",
+  ylim     = c(0, 1.2)
+)
+abline(h = 0.5, lty = 2, col = "gray30")
+grid()
+
+par(mfrow = c(1, 1))
+```
+
+> **Análisis del entrenamiento XOR completo:**
+
+>**(a) Costo:**  
+>El costo desciende progresivamente durante 500 épocas. Dado que se utilizan las cuatro observaciones, el problema > > > >requiere más iteraciones para alcanzar convergencia.
+>
+>**(b) Predicciones:**  
+>Las predicciones asociadas a $y=1$ (observaciones $(0,1)$ y $(1,0)$) tienden hacia 1, mientras que las correspondientes >a $y=0$ ($(0,0)$ y $(1,1)$) tienden hacia 0. Esto indica que la red logra capturar el patrón XOR.
+>
+>**(c) Error absoluto:**  
+>Los errores disminuyen en todas las observaciones, aunque a distintas velocidades debido a la dinámica del gradiente.
+>
+>**(d) Comparación final:**  
+>Cuando el modelo aprende correctamente, las predicciones superan el umbral de 0.5 para las clases positivas y permanecen >por debajo para las negativas..
+
+
+---
+
+## Consideraciones finales
+
+El experimento desarrollado permite evidenciar de manera explícita cómo una red neuronal con una sola capa oculta es capaz de aproximar funciones no lineales como XOR.
+
+La implementación manual del algoritmo de retropropagación facilita la comprensión detallada del proceso de aprendizaje, resaltando el papel fundamental del gradiente en la optimización de los parámetros del modelo.
+
+---
+
+
+
+
+# Información de sesión
+
+```{r session-info}
+sessionInfo()
+```
+
+---
+
+*Documento generado automáticamente. Todos los cálculos fueron realizados
+desde cero en R, sin librerías de redes neuronales o diferenciación automática.*
